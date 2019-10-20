@@ -27,7 +27,7 @@ if __name__ == '__main__':
     except:                     # if failure
         os.makedirs(outdir)     # create the path
 
-    N = (2**9)                  # N cols in reshaped array
+    N = (2**10)                  # N cols in reshaped array
 
     for I in range (len(wavs)):
         
@@ -43,24 +43,20 @@ if __name__ == '__main__':
 
             #### Create Class Instance ####
         audio = FFT_Classify.audio_sample(name,data,rate,params)    
-        audio.normalize(['L','R'])              # normailize L&R waveform to 1
-        audio.divisible_by_N(N)                 # make length of arrays divisible by 1
+        audio.normalize(['L','R'])          # normailize L&R waveform to 1
+        audio.divisible_by_N(N)             # make length of arrays divisible by N
+        audio.crop_silence(['L'],N=N)       # elim dead noise
+        audio.slicebyidx(['R','time'],\
+            np.arange(0,len(audio.L)))      # slice each time array
+        audio.divisible_by_N(N)             # make length of arrays divisible by N
 
-
-            #### Elminate Dead Noise ####
-        setattr(audio,'L_nxm',np.reshape(audio.L,(N,-1)))
-        setattr(audio,'L_nxm',np.reshape(audio.L,(N,-1)))
-        for M in range (len(audio.L_nxm),0,-1):             # start from -1 row and decriment
-            pass
-
-
-        
             #### Create Freqency Spectrum ####
-        fspace,power = audio.Fast_Fourier_Transform(['L','R'])  # Compute FFTs
-        audio.normalize(['L_FFT','R_FFT'])                      # normalize
+        fspace,power = audio.Fast_Fourier_Transform(['L'])      # Compute FFTs
+        audio.normalize(['L_FFT',])                             # normalize
         pts = np.where((fspace>=0)&(fspace<=5000))              # 0 to 5000 Hz
-        audio.slicebyidx(['L_FFT','R_FFT','freq_space'],pts)    # slice attrbs
-        FFT_Classify.Plot_Freq(audio,['L_FFT','R_FFT'],show=True)
+        audio.slicebyidx(['L_FFT','freq_space'],pts)            # slice attrbs
+        FFT_Classify.Plot_Freq(audio,['L_FFT'],show=True)
 
-            #### Create Spectrogram
+            #### Create Spectrogram ####
+
 

@@ -45,6 +45,99 @@ class audio_sample ():
         self.time = np.arange(0,self.nframes)/self.rate
             #### Other Attributes ####
 
+    def crop_silence (self,attrs=[],N=1024,bnd=0.1,overwrite=True):
+        """
+        Remove dead noise at the end of audio file
+        --------------------------------
+        attrs (list) : List of attribute strings to operate on
+        N (int) : Number of Indicies incirment by
+        bnd (float) : minimum amplitude threshold value (0.1 by default) 
+        overwrite (bool) : If True, (default), overwrites exisiting attribute value
+        --------------------------------
+        Returns an array of arrays w/ eliminated ead noise
+        """
+        outputs = np.array([])                      # array to hold all outputs
+        for attr in attrs:                          # attr to crop
+            try:                                    # attempt
+                data = self.__getattribute__(attr)  # isolate attr
+                data = np.reshape(data,(-1,N))      # reshape to (m x N)
+                while True:                             # indefinite loop
+                    max1 = np.max(np.abs(data[-1]))     # max of last row
+                    max0 = np.max(np.abs(data[0]))      # max of 1st row
+                    if max1 < bnd:                      # if amp too small
+                        data = np.delete(data,-1,0)     # delete last row
+                    #elif max0 < bnd:                    # else if,
+                    #    data = np.delete(data,0,0)      # delete last row
+                    else:                               # otherwise
+                        break                           # leave loop
+                data = data.flatten()               # flatten array
+                if overwrite == True:               # overwritre?
+                        setattr(self,attr,data)     # reset attr value
+                outputs = np.append(outputs,data)   # add output to array
+            except:                                 # if failure,
+                print("\n\tERROR! - Cannot Crop Attribite:",attr)
+                attrs.remove(attr)                  # remove attr from array
+        return outputs.reshape(len(attrs),-1)       # return reshaped matrix
+
+    def divisible_by_N (self,N=1024):
+        """
+        Make all time dependent array attribute a length divisible by N 
+        --------------------------------
+        N (int) : Number of 
+        --------------------------------
+        Returns None, Resets all time dependent attributes
+        """
+        rem = np.mod(self.nframes,N)                    # remainer of frames
+        pts = np.arange(0,self.nframes-rem)             # idxs to keep
+        setattr(self,'nframes',self.nframes-rem)        # reset num frames
+        setattr(self,'length',self.nframes/self.rate)   # reset length of file
+        attrs = ['time','L','R']                        # attrs to reshape
+        for attr in attrs:                              # for each 
+            data = self.__getattribute__(attr)          # isolate data
+            data = data[pts]                            # slice attr
+            setattr(self,attr,data)                     # reset attr array
+
+    def Fast_Fourier_Transform (self,attrs=[]):
+        """
+        Compute Discrete Fast Fourier Transform of object
+        --------------------------------
+        attrs (list) : List of attribute strings to operate on
+        --------------------------------
+        Returns array of power spectrum for attribute array
+        """
+        outputs = np.array([])                      # array to hold outputs
+        for attr in attrs:                          # for each attr
+            try:                                    # attempt
+                data = self.__getattribute__(attr)  # isolate atrribute
+                fftdata = fftpack.fft(data)         # compute FFT           
+                power = np.absolute(fftdata)**2     # power spectrum
+                name = attr + '_FFT'                # create name
+                setattr(self,name,power)            # set as new attrribute      
+                outputs = np.append(outputs,power)  # add to output array
+            except:                                 # failure
+                print("\n\tERROR! - Cannot take FFT of Attribute:",attr)          
+        fspace = self.Frequency_Space(len(power))
+        return fspace,outputs.reshape(len(attrs),-1)   # return reshaped matrix
+    
+    def Frequency_Space (self,length):
+        """ Compute x-axis for Frequency Space """
+        fspace = fftpack.fftfreq(length,self.prd)   # create f space bins
+        setattr(self,'freq_space',fspace)           # set attribute
+        return fspace                               # return array
+
+    def hanning_window (self,N=1024):
+        """
+        Apply Hanning Window to attribute, every N idxs 
+        NOTE: Arrays must be rectangular to (N x m) in order for arry to work with attributes
+        --------------------------------
+        N (int) : Number of Indicies to apply window too
+        --------------------------------
+        Returns Hanning Taper Window attribute and Hanning Window Taper as (Nx1) array
+        """
+        hann = signal.hanning(N)                    # hanning window
+        setattr(self,'hanning',hann)                # set attribute
+        return hann                                 # return the window taper as array
+
     def normalize (self,attrs=[],N=1,overwrite=True):
         """
         Normalize and attribute to N
@@ -65,32 +158,15 @@ class audio_sample ():
                 output = np.append(output,data)     # add to output array
             except:                                 # failure
                 print("\n\tERROR! - Cannot Normalize Attribite:",attr)
+                attrs.remove(attr)                  # remove attr from array
         return output.reshape(len(attrs),-1)        # return reshaped matrix
-
-    def divisible_by_N (self,N=1024):
-        """
-        Make all time dependent array attribute a length divisible by N 
-        --------------------------------
-        N (int) : Number of 
-        --------------------------------
-        Returns None, Resets all time dependent attributes
-        """
-        rem = np.mod(self.nframes,N)                    # remainer of frames
-        pts = np.arange(0,self.nframes-rem)             # idxs to keep
-        setattr(self,'nframes',self.nframes-rem)        # reset num frames
-        setattr(self,'length',self.nframes/self.rate)   # reset length of file
-        attrs = ['time','L','R']                        # attrs to reshape
-        for attr in attrs:                              # for each 
-            data = self.__getattribute__(attr)          # isolate data
-            data = data[pts]                            # slice attr
-            setattr(self,attr,data)                     # reset attr array  
-        
+      
     def slicebyidx (self,attrs=[],slice=[],overwrite=True):
         """
         Slice and overwrite attribute by index
         --------------------------------
         attrs (list) : List of attribute strings to operate on
-        slice (list) : List of values to slice array by 
+        slice (list) : List of values to slice array 
         overwrite (bool) : If True, (default), overwrites exisiting attribute value
         --------------------------------
         Returns an array of arrays normalized to value N
@@ -105,49 +181,22 @@ class audio_sample ():
                 outputs = np.append(outputs,data)    # add output to array
             except:                                 # failure
                 print("\n\tERROR! - Cannot Slice Attribite:",attr)
-        return outputs.reshape(len(attrs),-1)        # return reshaped matrix
+                attrs.remove(attr)                  # remove attr from array
+        return outputs.reshape(len(attrs),-1)       # return reshaped matrix
 
-    def hanning_window (self,N=1024):
+    def to_csv (name,attrs=[]):
         """
-        Apply Hanning Window to attribute, every N idxs 
-        NOTE: Arrays must be rectangular to (N x m) in order for arry to work with attributes
+        Write attribute arrays to csv file
         --------------------------------
-        N (int) : Number of Indicies to apply window too
+        name (str) : name of csv file to be written
+        attrs (list) : list of attribute to write to csv 
+            NOTE:  each attr must have same last dimension
         --------------------------------
-        Returns Hanning Taper Window attribute and Hanning Window Taper as (Nx1) array
         """
-        hann = signal.hanning(N)                    # hanning window
-        setattr(self,'Hanning',hann)                # set attribute
-        return hann                                 # return the window taper as array
+        pass
 
-    def Fast_Fourier_Transform (self,attrs=[]):
-        """
-        Compute Discrete Fast Fourier Transform of object
-        --------------------------------
-        attrs (list) : List of attribute strings to operate on
-        --------------------------------
-        Returns array of power spectrum for attribute array
-        """
-        outputs = np.array([])                      # array to hold outputs
-        for attr in attrs:                          # for each attr
-            try:                                    # attempt
-                data = self.__getattribute__(attr)  # isolate atrribute
-                fftdata = fftpack.fft(data)         # compute FFT
-                power = np.absolute(fftdata)**2     # power spectrum
-                name = attr + '_FFT'                # create name
-                setattr(self,name,power)            # set as new attrribute
-                outputs = np.append(outputs,power)  # add to output array
-            except:                                 # failure
-                print("\n\tERROR! - Cannot take FFT of Attribute:",attr)
-        fspace = self.Frequency_Space()
-        return fspace,outputs.reshape(len(attrs),-1)   # return reshaped matrix
     
-    def Frequency_Space (self,length):
-        """ Compute x-axis for Frequency Space """
-        fspace = fftpack.fftfreq(length,self.prd)   # create f space bins
-        setattr(self,'freq_space',fspace)           # set attribute
-        return fspace                               # return array
-
+        
     
 
 class wav_file ():
@@ -191,7 +240,6 @@ def read_directory(dir):
                 wav_objs.append(wav)        # add to list of wav file objs
     return wav_objs                         # return lists  of files
 
-
         #### PLOTTING & VISUALIZATION FUNCTIONS #####
 
 def Plot_Time (obj,attrs=[],save=False,show=False):
@@ -218,7 +266,7 @@ def Plot_Time (obj,attrs=[],save=False,show=False):
         except:
             print("\n\tERROR! - Could not plot attribute:",attr)
         
-    plt.vlines(0,obj.time[0],obj.time[-1],color='black')
+    plt.hlines(0,obj.time[0],obj.time[-1],color='black')
     plt.grid()
     plt.legend()
     plt.tight_layout()
@@ -263,6 +311,5 @@ def Plot_Freq (obj,attrs=[],save=False,show=False):
         plt.show()
     plt.close()
 
-                #### COMPOITE FUNCTIONS ####
 
   
