@@ -83,7 +83,7 @@ class audio_sample ():
         """
         Make all time dependent array attribute a length divisible by N 
         --------------------------------
-        N (int) : Number of 
+        N (int) : Number of columns in reshaped array
         --------------------------------
         Returns None, Resets all time dependent attributes
         """
@@ -94,8 +94,11 @@ class audio_sample ():
         attrs = ['time','L','R']                        # attrs to reshape
         for attr in attrs:                              # for each 
             data = self.__getattribute__(attr)          # isolate data
-            data = data[pts]                            # slice attr
-            setattr(self,attr,data)                     # reset attr array
+            try:                                    # attempt
+                data = data[pts]                    # slice attr
+            except IndexError:                      # if failure
+                pass                                # keep data as is
+            setattr(self,attr,data)                 # reset attr array
 
     def Fast_Fourier_Transform (self,attrs=[]):
         """
@@ -117,8 +120,8 @@ class audio_sample ():
             except:                                 # failure
                 print("\n\tERROR! - Cannot take FFT of Attribute:",attr)          
         fspace = self.Frequency_Space(len(power))
-        return fspace,outputs.reshape(len(attrs),-1)   # return reshaped matrix
-    
+        return fspace,outputs.reshape(len(attrs),-1)   # return reshaped matrix 
+ 
     def Frequency_Space (self,length):
         """ Compute x-axis for Frequency Space """
         fspace = fftpack.fftfreq(length,self.prd)   # create f space bins
@@ -183,6 +186,46 @@ class audio_sample ():
                 print("\n\tERROR! - Cannot Slice Attribite:",attr)
                 attrs.remove(attr)                  # remove attr from array
         return outputs.reshape(len(attrs),-1)       # return reshaped matrix
+
+    def spectrogram (self,attr,N=1024,hann=True):
+        """
+        Create spectrogram for specific attrtibute
+        --------------------------------
+        attrs (str) : Attribute strings to operate on
+            NOTE: Attribute must be able to be reshaped to N x M
+        N (int) : Number of columns in reshaped array (1024 by default)
+        hann (bool) : If True (default), apply Hanning window taper to row
+            NOTE: 'hanning_window' method must have been used if True
+        --------------------------------
+        return M x N matrix of spectrogram data. 
+            Each row is a linear frequency value and each column is a time increment
+        """
+        sptgrm = np.array([])               # array to hold sptgm data
+        
+        data = self.__getattribute__(attr)  # isolate attr
+        data = np.reshape(data,(-1,N))      # reshape to (m x N)
+
+        fspace = self.Frequency_Space(N)            # legnth of freq space
+        pts = np.where((fspace>=0)&(fspace<=5000))  # A to B Hz
+        fspace = fspace[pts]                        # slice frequency space
+        print(len(fspace))
+
+        for I in range (len(data)):             # for each row of data
+            row = data[I]                       # islate data set
+            if hann == True:                    # Hanning window?
+                row *= self.hanning             # apply window
+            fftdata = fftpack.fft(row)          # fft of I-th row
+            power = np.absolute(fftdata)**2     # power spectrum     
+            power = power[pts]                  # slice to f-spectrum
+            power = power/np.max(power)         # normalize array to 1
+            sptgrm = np.append(sptgrm,power)    # add array to spectrogram
+
+        sptgrm = sptgrm.reshape(len(fspace),-1)     # reshape array
+        name = attr+str('_spectrogram')             # name for attribute
+        setattr(self,name,sptgrm)                   # set attribute
+        return sptgrm.transpose()                   # tranpose & return
+
+
 
     def to_csv (name,attrs=[]):
         """
@@ -311,5 +354,7 @@ def Plot_Freq (obj,attrs=[],save=False,show=False):
         plt.show()
     plt.close()
 
+
+    
 
   

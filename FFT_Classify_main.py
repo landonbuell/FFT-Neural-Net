@@ -43,20 +43,21 @@ if __name__ == '__main__':
 
             #### Create Class Instance ####
         audio = FFT_Classify.audio_sample(name,data,rate,params)    
-        audio.normalize(['L','R'])          # normailize L&R waveform to 1
-        audio.divisible_by_N(N)             # make length of arrays divisible by N
-        audio.crop_silence(['L'],N=N)       # elim dead noise
+        audio.normalize(['L','R'])              # normailize L&R waveform to 1
+        audio.divisible_by_N(N)                 # make length of arrays divisible by N
+        audio.crop_silence(['L'],N=N,bnd=0.2)   # elim dead noise
         audio.slicebyidx(['R','time'],\
-            np.arange(0,len(audio.L)))      # slice each time array
-        audio.divisible_by_N(N)             # make length of arrays divisible by N
+            np.arange(0,len(audio.L)))          # slice each time array
+        audio.divisible_by_N(N)                 # make length of arrays divisible by N
 
             #### Create Freqency Spectrum ####
         fspace,power = audio.Fast_Fourier_Transform(['L'])      # Compute FFTs
         audio.normalize(['L_FFT',])                             # normalize
         pts = np.where((fspace>=0)&(fspace<=5000))              # 0 to 5000 Hz
         audio.slicebyidx(['L_FFT','freq_space'],pts)            # slice attrbs
-        FFT_Classify.Plot_Freq(audio,['L_FFT'],show=True)
+        #FFT_Classify.Plot_Freq(audio,['L_FFT'],show=True)
 
             #### Create Spectrogram ####
-
-
+        hann = audio.hanning_window(N=N)                # create hannign wondow taper          
+        spectrogram = audio.spectrogram('L')            # comepute spectrogram
+        FFT_Classify.Plot_Spectrogram(audio,show=True)
