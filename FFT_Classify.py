@@ -128,18 +128,22 @@ class audio_sample ():
         setattr(self,'freq_space',fspace)           # set attribute
         return fspace                               # return array
 
-    def hanning_window (self,N=1024):
+    def hanning_window (self,N=1024,M=1):
         """
         Apply Hanning Window to attribute, every N idxs 
         NOTE: Arrays must be rectangular to (N x m) in order for arry to work with attributes
         --------------------------------
         N (int) : Number of Indicies to apply window too
+        M (int) : Number of time to repeat the window
         --------------------------------
         Returns Hanning Taper Window attribute and Hanning Window Taper as (Nx1) array
-        """
-        hann = signal.hanning(N)                    # hanning window
-        setattr(self,'hanning',hann)                # set attribute
-        return hann                                 # return the window taper as array
+        """ 
+        hann = np.array([])             # array to hold hann window
+        for I in range (int(M)):        # M times
+            set = signal.hanning(N)     # hanning window
+            hann = np.append(hann,set)  # add to arr
+        setattr(self,'hanning',hann)    # set attribute
+        return hann                     # return the window taper as array
 
     def normalize (self,attrs=[],N=1,overwrite=True):
         """
@@ -200,15 +204,14 @@ class audio_sample ():
         return M x N matrix of spectrogram data. 
             Each row is a linear frequency value and each column is a time increment
         """
-        sptgrm = np.array([])               # array to hold sptgm data
+        Sxx = np.array([])                  # array to hold sptgm data
         
         data = self.__getattribute__(attr)  # isolate attr
         data = np.reshape(data,(-1,N))      # reshape to (m x N)
 
-        fspace = self.Frequency_Space(N)            # legnth of freq space
-        pts = np.where((fspace>=0)&(fspace<=5000))  # A to B Hz
-        fspace = fspace[pts]                        # slice frequency space
-        print(len(fspace))
+        f = self.Frequency_Space(N)         # legnth of freq space
+        pts = np.where((f>=0)&(f<=5000))    # A to B Hz
+        f = f[pts]                          # slice frequency space
 
         for I in range (len(data)):             # for each row of data
             row = data[I]                       # islate data set
@@ -218,14 +221,32 @@ class audio_sample ():
             power = np.absolute(fftdata)**2     # power spectrum     
             power = power[pts]                  # slice to f-spectrum
             power = power/np.max(power)         # normalize array to 1
-            sptgrm = np.append(sptgrm,power)    # add array to spectrogram
+            Sxx = np.append(Sxx,power)      # add array to spectrogram
 
-        sptgrm = sptgrm.reshape(len(fspace),-1)     # reshape array
-        name = attr+str('_spectrogram')             # name for attribute
-        setattr(self,name,sptgrm)                   # set attribute
-        return sptgrm.transpose()                   # tranpose & return
+        Sxx = Sxx.reshape(len(f),-1)        # reshape array
+        Sxx = Sxx.transpose()               # transpose 
+        t = np.arange(0,len(Sxx[-1])+1)*(N*self.prd)
 
+        name = attr+'_Sxx'
+        setattr(self,name,Sxx)
+        setattr(self,'t',t)
+        setattr(self,'f',f)
+        return f,t,Sxx
 
+    def scipy_spectrogram(self,attr,N=1024):
+        """ use Scipy.Signal to comput spectrogram """
+        data = self.__getattribute__(attr)
+        f,t,Sxx = signal.spectrogram(data,
+                    fs=self.rate,nperseg=N)
+        pts = np.where((f>=0)&(f<=4000))    # A to B Hz
+        f = f[pts]                          # slice frequency space
+        Sxx = Sxx[pts]
+
+        name = attr+'_Sxx'
+        setattr(self,name,Sxx)
+        setattr(self,'t',t)
+        setattr(self,'f',f)
+        return f,t,Sxx
 
     def to_csv (name,attrs=[]):
         """
@@ -250,6 +271,16 @@ class wav_file ():
         self.file = file
         self.fftpath = self.dirpath.replace('wav_audio','wav_spectra')
         self.spectpath = self.dirpath.replace('wav_audio','spectrogram')
+
+    def make_paths (self):
+        """ Test if paths exist """
+        paths = [self.fftpath,self.spectpath]
+        for path in paths:          # for each path
+            try:                    # try to move to it
+                os.chdir(path)      # move to path
+            except:                 # if failure
+                os.makedirs(path)   # create the path
+
 
         #### FUNCTIONS DEFINTIONS ####
 
@@ -354,7 +385,34 @@ def Plot_Freq (obj,attrs=[],save=False,show=False):
         plt.show()
     plt.close()
 
+def Plot_Spectrogram (obj,attr,save=False,show=False):
+    """
+    Produce Matplotlib Figure of data in Frequency and Time Domain
+        Note: Must have executed Spectrogram
+    --------------------------------
+    obj (class) : object to plot spectrogram of
+    save (bool) : indicates to progam to save figure to cwd (False by default)
+    show (bool) : indicates to progam to show figure (False by default)
+    --------------------------------
+    Returns None
+    """
+    plt.figure(figsize=(20,8))          
+    plt.title(obj.name,size=40,weight='bold')
+    plt.xlabel("Time",size=20,weight='bold')
+    plt.ylabel("Frequency",size=20,weight='bold')
 
-    
+    data = obj.__getattribute__(attr)       # isolate data array
+
+    #data = np.exp(data)
+    #plt.pcolormesh(obj.t,np.arange(len(data)),data)        # spectrogram
+    plt.pcolormesh(obj.t,obj.f,data)             # from scipy method
+
+    plt.grid()
+    plt.tight_layout()
+    if save == True:
+        plt.savefig(obj.name+'.freq.png')
+    if show == True:
+        plt.show()
+    plt.close()
 
   

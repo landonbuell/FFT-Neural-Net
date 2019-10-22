@@ -18,21 +18,16 @@ if __name__ == '__main__':
 
             #### Specify Dir Paths & Collect Files ####
     readdir = 'C:/Users/Landon/Documents/wav_audio/Violoncellos' 
-    outdir = readdir.replace('wav_audio','wav_spectra')
     wavs = FFT_Classify.read_directory(readdir) 
     print("Number of files to read in this path:",len(wavs))
-
-    try:                        # attempt  
-        os.chdir(outdir)        # change to output dir
-    except:                     # if failure
-        os.makedirs(outdir)     # create the path
 
     N = (2**10)                  # N cols in reshaped array
 
     for I in range (len(wavs)):
         
             #### Move to Working Directory ####
-        os.chdir(wavs[I].dirpath)               # change to reading dir
+        wavs[I].make_paths()                    # make needed paths
+        os.chdir(wavs[I].dirpath)               # change to reading dir      
         name = str(wavs[I].file)                # create name for file
         print('File name:',name)
         print('\tFile size:',os.path.getsize(name),'bytes')
@@ -55,9 +50,15 @@ if __name__ == '__main__':
         audio.normalize(['L_FFT',])                             # normalize
         pts = np.where((fspace>=0)&(fspace<=5000))              # 0 to 5000 Hz
         audio.slicebyidx(['L_FFT','freq_space'],pts)            # slice attrbs
-        #FFT_Classify.Plot_Freq(audio,['L_FFT'],show=True)
+
+        os.chdir(wavs[I].fftpath)
+        FFT_Classify.Plot_Freq(audio,['L_FFT'],save=True)
 
             #### Create Spectrogram ####
-        hann = audio.hanning_window(N=N)                # create hannign wondow taper          
-        spectrogram = audio.spectrogram('L')            # comepute spectrogram
-        FFT_Classify.Plot_Spectrogram(audio,show=True)
+        hann = audio.hanning_window(N=N,M=len(audio.L)/N)   # create hannign wondow taper
+        setattr(audio,'L',hann*audio.L)
+        #f,t,Sxx = audio.spectrogram('L')            # comepute spectrogram    
+        f,t,Sxx = audio.scipy_spectrogram('L',N=N)
+
+        os.chdir(wavs[I].spectpath)
+        FFT_Classify.Plot_Spectrogram(audio,'L_Sxx',save=True)
