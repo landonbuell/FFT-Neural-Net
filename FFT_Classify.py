@@ -9,6 +9,7 @@ Read raw Audio files (v1)
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 import os
 import scipy.fftpack as fftpack
 import scipy.io.wavfile as sciowav
@@ -76,7 +77,7 @@ class audio_sample ():
                 outputs = np.append(outputs,data)   # add output to array
             except:                                 # if failure,
                 print("\n\tERROR! - Cannot Crop Attribite:",attr)
-                attrs.remove(attr)                  # remove attr from array
+                attrs = attrs.remove(attr)          # remove attr from array
         return outputs.reshape(len(attrs),-1)       # return reshaped matrix
 
     def divisible_by_N (self,N=1024):
@@ -118,7 +119,8 @@ class audio_sample ():
                 setattr(self,name,power)            # set as new attrribute      
                 outputs = np.append(outputs,power)  # add to output array
             except:                                 # failure
-                print("\n\tERROR! - Cannot take FFT of Attribute:",attr)          
+                print("\n\tERROR! - Cannot take FFT of Attribute:",attr)        
+                attrs = attrs.remove(attr)          # remove attr from array
         fspace = self.Frequency_Space(len(power))
         return fspace,outputs.reshape(len(attrs),-1)   # return reshaped matrix 
  
@@ -165,7 +167,7 @@ class audio_sample ():
                 output = np.append(output,data)     # add to output array
             except:                                 # failure
                 print("\n\tERROR! - Cannot Normalize Attribite:",attr)
-                attrs.remove(attr)                  # remove attr from array
+                attrs = attrs.remove(attr)          # remove attr from array
         return output.reshape(len(attrs),-1)        # return reshaped matrix
       
     def slicebyidx (self,attrs=[],slice=[],overwrite=True):
@@ -188,7 +190,7 @@ class audio_sample ():
                 outputs = np.append(outputs,data)    # add output to array
             except:                                 # failure
                 print("\n\tERROR! - Cannot Slice Attribite:",attr)
-                attrs.remove(attr)                  # remove attr from array
+                attrs = attrs.remove(attr)          # remove attr from array
         return outputs.reshape(len(attrs),-1)       # return reshaped matrix
 
     def spectrogram (self,attr,N=1024,hann=True):
@@ -244,20 +246,51 @@ class audio_sample ():
 
         name = attr+'_Sxx'
         setattr(self,name,Sxx)
-        setattr(self,'t',t)
-        setattr(self,'f',f)
+        setattr(self,attr+'_t',t)
+        setattr(self,attr+'_f',f)
         return f,t,Sxx
 
-    def to_csv (name,attrs=[]):
+    def to_csv (self,name,attrs=[]):
         """
-        Write attribute arrays to csv file
+        Write attribute arrays pandas Dataframe and then to csv file
         --------------------------------
         name (str) : name of csv file to be written
         attrs (list) : list of attribute to write to csv 
             NOTE:  each attr must have same last dimension
         --------------------------------
+        Returns Pandas Dataframe of inputted attributes
+        """
+        outputs = np.array([])          # array to hold all outputs
+        labels = np.array([])           # array to hold col headers
+        for attr in attrs:              # each attribute
+            try:                                    # attempt
+                data = self.__getattribute__(attr)  # data array
+                outputs = np.append(outputs,data)   # add data to array
+                labels = np.append(labels,attr)     # add header to list
+            except:
+                print("\n\tERROR! - Cannot Write Attribite:",attr)
+                attrs = attrs.remove(attr)              # remove attr from array
+        outputs = np.reshape(outputs,(len(attrs),-1))   # reshape array
+        outputs = np.transpose(outputs)                 # tranpose
+        frame = pd.DataFrame(data=outputs,columns=labels,
+                             dtype=float)               # create pandas df
+        frame.to_csv(name)                              # write frame ot csv
+        return frame                                # return dataframe  
+
+    def spectrogram_to_csv(self,name,attrs=[]):
+        """
+        Write Spectrogram to pandas Dataframe and then to csv file
+        --------------------------------
+        name (str) : name of csv file to be written
+        attrs (list) : list of attribute to write to csv 
+            NOTE:  each attr must have same last dimension
+        --------------------------------
+        Returns Pandas Dataframe of inputted attributes
         """
         pass
+        
+        
+                    
 
     
         

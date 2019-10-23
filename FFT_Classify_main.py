@@ -17,7 +17,7 @@ import FFT_Classify
 if __name__ == '__main__':
 
             #### Specify Dir Paths & Collect Files ####
-    readdir = 'C:/Users/Landon/Documents/wav_audio/Tuba' 
+    readdir = 'C:/Users/Landon/Documents/wav_audio/Violins' 
     wavs = FFT_Classify.read_directory(readdir) 
     print("Number of files to read in this path:",len(wavs))
 
@@ -42,23 +42,26 @@ if __name__ == '__main__':
         audio.divisible_by_N(N)                 # make length of arrays divisible by N
         audio.crop_silence(['L'],N=N,bnd=0.2)   # elim dead noise
         audio.slicebyidx(['R','time'],\
-            np.arange(0,len(audio.L)))          # slice each time array
+                    np.arange(0,len(audio.L)))  # slice each time array
         audio.divisible_by_N(N)                 # make length of arrays divisible by N
 
             #### Create Freqency Spectrum ####
-        fspace,power = audio.Fast_Fourier_Transform(['L'])      # Compute FFTs
-        audio.normalize(['L_FFT',])                             # normalize
+        fspace,power = audio.Fast_Fourier_Transform(['L','R'])  # Compute FFTs
+        audio.normalize(['L_FFT','R_FFT'])                      # normalize
         pts = np.where((fspace>=0)&(fspace<=4000))              # 0 to 5000 Hz
-        audio.slicebyidx(['L_FFT','freq_space'],pts)            # slice attrbs
+        audio.slicebyidx(['L_FFT','R_FFT','freq_space'],pts)    # slice attrbs
 
         os.chdir(wavs[I].fftpath)
-        FFT_Classify.Plot_Freq(audio,['L_FFT'],save=True)
+        #FFT_Classify.Plot_Freq(audio,['L_FFT'],save=True)
+        fname = audio.name+'_FFT' 
+        audio.to_csv(fname,['freq_space','L_FFT','R_FFT'])
 
             #### Create Spectrogram ####
         hann = audio.hanning_window(N=N,M=len(audio.L)/N)   # create hannign wondow taper
         setattr(audio,'L',hann*audio.L)
-        #f,t,Sxx = audio.spectrogram('L')            # comepute spectrogram    
         f,t,Sxx = audio.scipy_spectrogram('L',N=N)
-
+        
         os.chdir(wavs[I].spectpath)
-        FFT_Classify.Plot_Spectrogram(audio,'L_Sxx',save=True)
+        #FFT_Classify.Plot_Spectrogram(audio,'L_Sxx',save=True)
+        fname = audio.name+'_spectrogram'
+        
