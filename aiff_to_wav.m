@@ -9,11 +9,11 @@
 % clear workspace
 clearvars;
 clc;
-print("Program Running...")
+%print("Program Running...")
 
 %%%% Establish All directory Paths %%%%
 rootdir = pwd;
-readdir = 'C:\Users\Landon\Documents\aiff_audio\Violoncellos';
+readdir = 'C:\Users\Landon\Documents\aiff_audio\Oboes';
 outdir = strrep(readdir,'aiff_audio','wav_audio');
 
 try                         % attempt to change dir

@@ -17,7 +17,7 @@ import FFT_Classify
 if __name__ == '__main__':
 
             #### Specify Dir Paths & Collect Files ####
-    readdir = 'C:/Users/Landon/Documents/wav_audio/Violoncellos' 
+    readdir = 'C:/Users/Landon/Documents/wav_audio/Tuba' 
     wavs = FFT_Classify.read_directory(readdir) 
     print("Number of files to read in this path:",len(wavs))
 
@@ -48,7 +48,7 @@ if __name__ == '__main__':
             #### Create Freqency Spectrum ####
         fspace,power = audio.Fast_Fourier_Transform(['L'])      # Compute FFTs
         audio.normalize(['L_FFT',])                             # normalize
-        pts = np.where((fspace>=0)&(fspace<=5000))              # 0 to 5000 Hz
+        pts = np.where((fspace>=0)&(fspace<=4000))              # 0 to 5000 Hz
         audio.slicebyidx(['L_FFT','freq_space'],pts)            # slice attrbs
 
         os.chdir(wavs[I].fftpath)

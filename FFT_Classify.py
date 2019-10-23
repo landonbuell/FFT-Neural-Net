@@ -210,7 +210,7 @@ class audio_sample ():
         data = np.reshape(data,(-1,N))      # reshape to (m x N)
 
         f = self.Frequency_Space(N)         # legnth of freq space
-        pts = np.where((f>=0)&(f<=5000))    # A to B Hz
+        pts = np.where((f>=0)&(f<=4000))    # A to B Hz
         f = f[pts]                          # slice frequency space
 
         for I in range (len(data)):             # for each row of data
