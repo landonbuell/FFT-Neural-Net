@@ -277,17 +277,24 @@ class audio_sample ():
         frame.to_csv(name)                              # write frame ot csv
         return frame                                # return dataframe  
 
-    def spectrogram_to_csv(self,name,attrs=[]):
+    def spectrogram_to_csv(self,name,Sxx,t,f):
         """
         Write Spectrogram to pandas Dataframe and then to csv file
         --------------------------------
         name (str) : name of csv file to be written
-        attrs (list) : list of attribute to write to csv 
-            NOTE:  each attr must have same last dimension
+        Sxx (array) : 2D array of spectrgram data
+        t (array) : time axis for spectrogram
+        f (array) : frequency axis for spectrogram
         --------------------------------
         Returns Pandas Dataframe of inputted attributes
         """
-        pass
+        frame1 = pd.DataFrame(Sxx)              # create data frame from spectgrm.
+        frame2 = pd.DataFrame(data=[t,f],
+                              columns=['Time','Frequnecy'])
+        frame = pd.concat([frame1,frame2],
+                          ignore_index=True,axis=1) # concatenate
+
+
         
         
                     
