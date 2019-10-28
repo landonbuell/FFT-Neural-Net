@@ -64,4 +64,4 @@ if __name__ == '__main__':
         os.chdir(wavs[I].spectpath)
         #FFT_Classify.Plot_Spectrogram(audio,'L_Sxx',save=True)
         fname = audio.name+'_spectrogram'
-        audio.spectrogram_to_csv(fname,Sxx,t,f)
+        
