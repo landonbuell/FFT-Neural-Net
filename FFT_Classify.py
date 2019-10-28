@@ -193,62 +193,27 @@ class audio_sample ():
                 attrs = attrs.remove(attr)          # remove attr from array
         return outputs.reshape(len(attrs),-1)       # return reshaped matrix
 
-    def spectrogram (self,attr,N=1024,hann=True):
-        """
-        Create spectrogram for specific attrtibute
+    def spectrogram(self,attr,npts=1024,ovlp=512):
+        """ Use Scipy.Signal to comput spectrogram
         --------------------------------
-        attrs (str) : Attribute strings to operate on
-            NOTE: Attribute must be able to be reshaped to N x M
-        N (int) : Number of columns in reshaped array (1024 by default)
-        hann (bool) : If True (default), apply Hanning window taper to row
-            NOTE: 'hanning_window' method must have been used if True
+        attrs (str) : Attribute Strings to operate on
+        npts (int) : number of points in the spectrogram window
+        ovlp (int) : number of points to overlap each window by
         --------------------------------
-        return M x N matrix of spectrogram data. 
-            Each row is a linear frequency value and each column is a time increment
+        Returns time array, frequency array and spectrogram matrix
         """
-        Sxx = np.array([])                  # array to hold sptgm data
-        
-        data = self.__getattribute__(attr)  # isolate attr
-        data = np.reshape(data,(-1,N))      # reshape to (m x N)
-
-        f = self.Frequency_Space(N)         # legnth of freq space
-        pts = np.where((f>=0)&(f<=4000))    # A to B Hz
-        f = f[pts]                          # slice frequency space
-
-        for I in range (len(data)):             # for each row of data
-            row = data[I]                       # islate data set
-            if hann == True:                    # Hanning window?
-                row *= self.hanning             # apply window
-            fftdata = fftpack.fft(row)          # fft of I-th row
-            power = np.absolute(fftdata)**2     # power spectrum     
-            power = power[pts]                  # slice to f-spectrum
-            power = power/np.max(power)         # normalize array to 1
-            Sxx = np.append(Sxx,power)      # add array to spectrogram
-
-        Sxx = Sxx.reshape(len(f),-1)        # reshape array
-        Sxx = Sxx.transpose()               # transpose 
-        t = np.arange(0,len(Sxx[-1])+1)*(N*self.prd)
-
-        name = attr+'_Sxx'
-        setattr(self,name,Sxx)
-        setattr(self,'t',t)
-        setattr(self,'f',f)
-        return f,t,Sxx
-
-    def scipy_spectrogram(self,attr,N=1024):
-        """ use Scipy.Signal to comput spectrogram """
         data = self.__getattribute__(attr)
-        f,t,Sxx = signal.spectrogram(data,
-                    fs=self.rate,nperseg=N)
+        f,t,Sxx = signal.spectrogram(data,fs=self.rate,
+                            nperseg=npts,noverlap=ovlp)
         pts = np.where((f>=0)&(f<=4000))    # A to B Hz
         f = f[pts]                          # slice frequency space
-        Sxx = Sxx[pts]
-
-        name = attr+'_Sxx'
+        Sxx = Sxx[pts]                      # slice spectrogram
+            
+        name = attr+'_Sxx'          # attatch attributes
         setattr(self,name,Sxx)
-        setattr(self,attr+'_t',t)
-        setattr(self,attr+'_f',f)
-        return f,t,Sxx
+        setattr(self,name+'_t',t)
+        setattr(self,name+'_f',f)
+        return f,t,Sxx              # return arrays
 
     def to_csv (self,name,attrs=[]):
         """
@@ -275,35 +240,27 @@ class audio_sample ():
         frame = pd.DataFrame(data=outputs,columns=labels,
                              dtype=float)               # create pandas df
         frame.to_csv(name)                              # write frame ot csv
-        return frame                                # return dataframe  
-
-    def spectrogram_to_csv(self,name,attrs=[]):
-        """
-        Write Spectrogram to pandas Dataframe and then to csv file
-        --------------------------------
-        name (str) : name of csv file to be written
-        attrs (list) : list of attribute to write to csv 
-            NOTE:  each attr must have same last dimension
-        --------------------------------
-        Returns Pandas Dataframe of inputted attributes
-        """
-        pass
-        
-        
-                    
-
-    
-        
-    
+        return frame                                # return dataframe   
 
 class wav_file ():
+    """ Create Raw wavefile object """
 
     def __init__(self,root,file):
         """ Initialize Class Object """
-        self.dirpath = root
-        self.file = file
-        self.fftpath = self.dirpath.replace('wav_audio','wav_spectra')
-        self.spectpath = self.dirpath.replace('wav_audio','spectrogram')
+        self.dirpath = root                     # intial storage path
+        self.file = file                        # filename
+        self.fftpath = self.FFT_path()          # path for FFT output
+        self.spectpath = self.Spectro_path()    # path
+
+    def FFT_path (self):
+        """ Create path destination for frequency spectra """
+        path = self.dirpath.replace('wav_audio','wav_frequency_spectra')
+        return path
+
+    def Spectro_path(self):
+        """ Create path destination for frequency spectra """
+        path = self.dirpath.replace('wav_audio','wav_spectrogram')
+        return path
 
     def make_paths (self):
         """ Test if paths exist """
@@ -313,7 +270,6 @@ class wav_file ():
                 os.chdir(path)      # move to path
             except:                 # if failure
                 os.makedirs(path)   # create the path
-
 
         #### FUNCTIONS DEFINTIONS ####
 
@@ -418,12 +374,15 @@ def Plot_Freq (obj,attrs=[],save=False,show=False):
         plt.show()
     plt.close()
 
-def Plot_Spectrogram (obj,attr,save=False,show=False):
+def Plot_Spectrogram (obj,Sxx,t,f,save=False,show=False):
     """
     Produce Matplotlib Figure of data in Frequency and Time Domain
         Note: Must have executed Spectrogram
     --------------------------------
     obj (class) : object to plot spectrogram of
+    Sxx (array) : 2D spectrogram matrix
+    t (array) : time axis array for spectrogram
+    f (array) : frequency axis array for spectrogram
     save (bool) : indicates to progam to save figure to cwd (False by default)
     show (bool) : indicates to progam to show figure (False by default)
     --------------------------------
@@ -434,11 +393,7 @@ def Plot_Spectrogram (obj,attr,save=False,show=False):
     plt.xlabel("Time",size=20,weight='bold')
     plt.ylabel("Frequency",size=20,weight='bold')
 
-    data = obj.__getattribute__(attr)       # isolate data array
-
-    #data = np.exp(data)
-    #plt.pcolormesh(obj.t,np.arange(len(data)),data)        # spectrogram
-    plt.pcolormesh(obj.t,obj.f,data)             # from scipy method
+    plt.pcolormesh(t,f,Sxx)
 
     plt.grid()
     plt.tight_layout()
