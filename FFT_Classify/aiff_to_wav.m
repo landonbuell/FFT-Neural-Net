@@ -13,7 +13,7 @@ clc;
 
 %%%% Establish All directory Paths %%%%
 rootdir = pwd;
-readdir = 'C:\Users\Landon\Documents\aiff_audio\Oboes';
+readdir = 'C:\Users\Landon\Documents\aiff_audio';
 outdir = strrep(readdir,'aiff_audio','wav_audio');
 
 try                         % attempt to change dir

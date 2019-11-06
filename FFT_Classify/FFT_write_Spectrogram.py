@@ -1,8 +1,8 @@
 """
 Landon Buell
 FFT & Neural Network
-Raw Audio files main (v1)
-8 Sept 2019
+Write Spectrogram
+5 November 2019
 """
 
             #### IMPORTS ####
@@ -18,9 +18,12 @@ if __name__ == '__main__':
 
             #### Specify Dir Paths & Collect Files ####
     intdir = os.getcwd()
-    readdir = 'C:/Users/Landon/Documents/wav_audio' 
+    readdir = 'C:/Users/Landon/Documents/wav_audio/Violins' 
     wavs = FFT_Classify.read_directory(readdir) 
     print("Number of files to read in this path:",len(wavs))
+
+    strings = ['Violins','Violas','Violoncellos']
+    spects = np.array([])
 
     N = (2**10)                  # N cols in reshaped array
 
@@ -39,28 +42,10 @@ if __name__ == '__main__':
 
             #### Create Class Instance ####
         audio = FFT_Classify.audio_sample(name,data,rate,params)    
-        audio.normalize(['L','R'])              # normailize L&R waveform to 1
-        audio.divisible_by_N(N)                 # make length of arrays divisible by N
-        audio.crop_silence(['L'],N=N,bnd=0.2)   # elim dead noise
-        audio.slicebyidx(['R','time'],\
-                    np.arange(0,len(audio.L)))  # slice each time array
-        audio.divisible_by_N(N)                 # make length of arrays divisible by N
-
-            #### Create Freqency Spectrum ####
-        os.chdir(wavs[I].fftpath)
-        fspace,power = audio.Fast_Fourier_Transform(['L','R'])  # Compute FFTs
-        audio.normalize(['L_FFT','R_FFT'])                      # normalize
-        pts = np.where((fspace>=0)&(fspace<=4000))              # 0 to 5000 Hz
-        audio.slicebyidx(['L_FFT','R_FFT','freq_space'],pts)    # slice attrbs     
-        FFT_Classify.Plot_Freq(audio,['L_FFT'],save=True)
 
             #### Create Spectrogram ####
-        os.chdir(wavs[I].spectpath)
         f,t,Sxx = audio.spectrogram('L',npts=N,ovlp=int(0.75*N))
-        print(np.shape(Sxx))
-        FFT_Classify.Plot_Spectrogram(audio,Sxx=audio.L_Sxx,
-                                      t=audio.L_Sxx_t,f=audio.L_Sxx_f,
+        setattr(audio,'Sxx_flatten',Sxx.flatten())
 
 
 
-        

@@ -208,7 +208,7 @@ class audio_sample ():
         pts = np.where((f>=0)&(f<=4000))    # A to B Hz
         f = f[pts]                          # slice frequency space
         Sxx = Sxx[pts]                      # slice spectrogram
-            
+
         name = attr+'_Sxx'          # attatch attributes
         setattr(self,name,Sxx)
         setattr(self,name+'_t',t)
