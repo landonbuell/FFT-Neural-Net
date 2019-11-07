@@ -45,6 +45,7 @@ class audio_sample ():
         self.length = self.nframes/self.rate
         self.time = np.arange(0,self.nframes)/self.rate
             #### Other Attributes ####
+        self.instrument = self.name.split('.')[0]   # instrument
 
     def crop_silence (self,attrs=[],N=1024,bnd=0.1,overwrite=True):
         """
@@ -101,7 +102,7 @@ class audio_sample ():
                 pass                                # keep data as is
             setattr(self,attr,data)                 # reset attr array
 
-    def Fast_Fourier_Transform (self,attrs=[]):
+    def Fast_Fourier_Transform (self,attrs=[],n=2**16):
         """
         Compute Discrete Fast Fourier Transform of object
         --------------------------------
@@ -113,7 +114,7 @@ class audio_sample ():
         for attr in attrs:                          # for each attr
             try:                                    # attempt
                 data = self.__getattribute__(attr)  # isolate atrribute
-                fftdata = fftpack.fft(data)         # compute FFT           
+                fftdata = fftpack.fft(data,n=n)     # compute FFT           
                 power = np.absolute(fftdata)**2     # power spectrum
                 name = attr + '_FFT'                # create name
                 setattr(self,name,power)            # set as new attrribute      
@@ -193,18 +194,21 @@ class audio_sample ():
                 attrs = attrs.remove(attr)          # remove attr from array
         return outputs.reshape(len(attrs),-1)       # return reshaped matrix
 
-    def spectrogram(self,attr,npts=1024,ovlp=512):
-        """ Use Scipy.Signal to comput spectrogram
+    def spectrogram(self,attr,npts=1024,ovlp=512,nfft=2**14):
+        """
+        Use Scipy.Signal to comput spectrogram
         --------------------------------
         attrs (str) : Attribute Strings to operate on
         npts (int) : number of points in the spectrogram window
         ovlp (int) : number of points to overlap each window by
+        nfft (int) : Length of fast fourier transform used
         --------------------------------
         Returns time array, frequency array and spectrogram matrix
         """
         data = self.__getattribute__(attr)
         f,t,Sxx = signal.spectrogram(data,fs=self.rate,
-                            nperseg=npts,noverlap=ovlp)
+                        nperseg=npts,noverlap=ovlp,nfft=nfft)
+
         pts = np.where((f>=0)&(f<=4000))    # A to B Hz
         f = f[pts]                          # slice frequency space
         Sxx = Sxx[pts]                      # slice spectrogram
@@ -254,12 +258,12 @@ class wav_file ():
 
     def FFT_path (self):
         """ Create path destination for frequency spectra """
-        path = self.dirpath.replace('wav_audio','wav_frequency_spectra')
+        path = self.dirpath.replace('wav_audio','wav_FFTs')
         return path
 
     def Spectro_path(self):
         """ Create path destination for frequency spectra """
-        path = self.dirpath.replace('wav_audio','wav_spectrogram')
+        path = self.dirpath.replace('wav_audio','wav_Spectra')
         return path
 
     def make_paths (self):
@@ -398,7 +402,7 @@ def Plot_Spectrogram (obj,Sxx,t,f,save=False,show=False):
     plt.grid()
     plt.tight_layout()
     if save == True:
-        plt.savefig(obj.name+'.freq.png')
+        plt.savefig(obj.name+'.spect.png')
     if show == True:
         plt.show()
     plt.close()
