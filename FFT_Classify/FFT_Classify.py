@@ -35,7 +35,7 @@ class audio_sample ():
         self.L = waveform[1]            # left track
         self.R = waveform[0]            # right track
         self.rate = rate                # sample rate
-        self.filetype = filename[-4:]   # file extension
+        self.filetype = filename[-1]    # file extension
             #### Parameters Attributes ####
         self.chs = params[0]            # number of channels
         self.comptype = params[1]       # compression type
@@ -243,8 +243,9 @@ class audio_sample ():
         outputs = np.transpose(outputs)                 # tranpose
         frame = pd.DataFrame(data=outputs,columns=labels,
                              dtype=float)               # create pandas df
-        frame.to_csv(name)                              # write frame ot csv
-        return frame                                # return dataframe   
+        frame.to_csv(name+'.txt',sep='\t',
+                     float_format='%8.4f',mode='w')     # write frame of csv
+        return frame                                    # return dataframe   
 
 class wav_file ():
     """ Create Raw wavefile object """
@@ -253,8 +254,14 @@ class wav_file ():
         """ Initialize Class Object """
         self.dirpath = root                     # intial storage path
         self.file = file                        # filename
+        self.wavepath = self.wave_path()
         self.fftpath = self.FFT_path()          # path for FFT output
         self.spectpath = self.Spectro_path()    # path
+
+    def wave_path (self):
+        """ Create path destination for frequency spectra """
+        path = self.dirpath.replace('wav_audio','wav_waveforms')
+        return path
 
     def FFT_path (self):
         """ Create path destination for frequency spectra """
@@ -268,7 +275,7 @@ class wav_file ():
 
     def make_paths (self):
         """ Test if paths exist """
-        paths = [self.fftpath,self.spectpath]
+        paths = [self.wavepath,self.fftpath,self.spectpath]
         for path in paths:          # for each path
             try:                    # try to move to it
                 os.chdir(path)      # move to path
@@ -309,11 +316,12 @@ def read_directory(dir):
 
         #### PLOTTING & VISUALIZATION FUNCTIONS #####
 
-def Plot_Time (obj,attrs=[],save=False,show=False):
+def Plot_Time (obj,title,attrs=[],save=False,show=False):
     """
     Produce Matplotlib Figure of data in time domain
     --------------------------------
     obj (class) : object to plot attributes of
+    title (str) : Title for figure to save as
     attrs (list) : list of attribute strings to plot data of
     save (bool) : indicates to progam to save figure to cwd (False by default)
     show (bool) : indicates to progam to show figure (False by default)
@@ -322,7 +330,7 @@ def Plot_Time (obj,attrs=[],save=False,show=False):
     """
         #### Initializations ####
     plt.figure(figsize=(20,8))          
-    plt.title(obj.name,size=40,weight='bold')
+    plt.title(title,size=40,weight='bold')
     plt.xlabel("Time",size=20,weight='bold')
     plt.ylabel("Amplitude",size=20,weight='bold')
 
@@ -338,17 +346,18 @@ def Plot_Time (obj,attrs=[],save=False,show=False):
     plt.legend()
     plt.tight_layout()
     if save == True:
-        plt.savefig(obj.name+'.time.png')
+        plt.savefig(title+'.time.png')
     if show == True:
         plt.show()
     plt.close()
 
-def Plot_Freq (obj,attrs=[],save=False,show=False):
+def Plot_Freq (obj,title,attrs=[],save=False,show=False):
     """
     Produce Matplotlib Figure of data in Frequency Domain
     Note: Must have executed FFT & Freq_Space methods before calling
     --------------------------------
     obj (class) : object to plot attributes of
+    title (str) : Title for figure to save as
     attrs (list) : list of attribute strings to plot data of
     save (bool) : indicates to progam to save figure to cwd (False by default)
     show (bool) : indicates to progam to show figure (False by default)
@@ -357,7 +366,7 @@ def Plot_Freq (obj,attrs=[],save=False,show=False):
     """
         #### Initializations ####
     plt.figure(figsize=(20,8))          
-    plt.title(obj.name,size=40,weight='bold')
+    plt.title(title,size=40,weight='bold')
     plt.xlabel("Frequency [Hz]",size=20,weight='bold')
     plt.ylabel("Amplitude",size=20,weight='bold')
 
@@ -373,17 +382,18 @@ def Plot_Freq (obj,attrs=[],save=False,show=False):
     plt.legend()
     plt.tight_layout()
     if save == True:
-        plt.savefig(obj.name+'.freq.png')
+        plt.savefig(title+'.freq.png')
     if show == True:
         plt.show()
     plt.close()
 
-def Plot_Spectrogram (obj,Sxx,t,f,save=False,show=False):
+def Plot_Spectrogram (obj,title,Sxx,t,f,save=False,show=False):
     """
     Produce Matplotlib Figure of data in Frequency and Time Domain
         Note: Must have executed Spectrogram
     --------------------------------
     obj (class) : object to plot spectrogram of
+    title (str) : Title for figure to save as
     Sxx (array) : 2D spectrogram matrix
     t (array) : time axis array for spectrogram
     f (array) : frequency axis array for spectrogram
@@ -393,7 +403,7 @@ def Plot_Spectrogram (obj,Sxx,t,f,save=False,show=False):
     Returns None
     """
     plt.figure(figsize=(20,8))          
-    plt.title(obj.name,size=40,weight='bold')
+    plt.title(title,size=40,weight='bold')
     plt.xlabel("Time",size=20,weight='bold')
     plt.ylabel("Frequency",size=20,weight='bold')
 
@@ -402,9 +412,7 @@ def Plot_Spectrogram (obj,Sxx,t,f,save=False,show=False):
     plt.grid()
     plt.tight_layout()
     if save == True:
-        plt.savefig(obj.name+'.spect.png')
+        plt.savefig(title+'.spect.png')
     if show == True:
         plt.show()
     plt.close()
-
-  
