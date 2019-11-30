@@ -61,7 +61,7 @@ def binary_classifier (xdata,ydata,max_iter,seed=0,size=0.1):
     xy_dict =   {'X_train':X_train,'X_test':X_test,
                  'Y_train':Y_train,'Y_test':Y_test}     # train/test data into dictionary
 
-    CLF = SGDClassifier(max_iter=max_iter,random_state=seed)    # create classifer object
+    CLF = SGDClassifier(random_state=seed)    # create classifer object
     CLF.fit(X_train,Y_train)                # fit dataset
    
     return CLF,xy_dict                      # return classifier & xy data dictionary
@@ -83,3 +83,27 @@ def confusion (clf,xdata,ydata):
                  'FN':conf_mat[1][0],'TP':conf_mat[1][1]}   # confusion dictionary
 
     return conf_mat,conf_dict                           # return confusion matrix & dictionary
+
+def general_metrics (clf,xdata,ydata,disp=True):
+    """
+    Build Confusion matric and dictionary for binary classifier
+    ----------------
+    clf (classifier obj) : Classifier object to build confusion matrix for
+    xdata (array/DataFrame) : x-training dataset
+    ydata (array/DataFrame) : y-training target dataset
+    disp (bool) : Display outputs to command line (True by default)
+    ----------------
+    Returns Binary confusion matrix and dictionary of entries
+    """
+    ypred = model.cross_val_predict(clf,xdata,ydata)    # cross-val prediction
+    
+    precision = metrics.precision_score(ydata,ypred)    # compute precision score
+    recall = metrics.recall_score(ydata,ypred)          # compute recall score
+    f1 = metrics.f1_score(ydata,ypred)                  # compute f1 score
+
+    if disp == True:                        # print output to line?
+        print('Precision Score:',precision)
+        print('Recall Score:',recall)
+        print("F1 Score:",f1)
+
+    return precision,recall,f1                  # return values
