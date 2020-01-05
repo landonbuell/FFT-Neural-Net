@@ -277,10 +277,10 @@ class wav_file ():
         """ Test if paths exist """
         paths = [self.wavepath,self.fftpath,self.spectpath]
         for path in paths:          # for each path
-            try:                    # try to move to it
-                os.chdir(path)      # move to path
-            except:                 # if failure
-                os.makedirs(path)   # create the path
+            if os.path.exists(path) == False:
+                os.mkdir(path)
+            else:
+                continue
 
         #### FUNCTIONS DEFINTIONS ####
 
